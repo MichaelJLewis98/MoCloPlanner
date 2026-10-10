@@ -1,0 +1,2 @@
+[console_scripts]
+mocloplanner-cli = moclo_cli:main

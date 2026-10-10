@@ -1,0 +1,13 @@
+# Local inventory workbooks may contain lab-specific data.
+*.xlsx
+
+# Keep synthetic, reviewed example workbooks in version control.
+!examples/
+!examples/*.xlsx
+
+# Generated upload files and Python environment/cache files.
+temp_inventory.*
+__pycache__/
+*.py[cod]
+.venv/
+.conda/

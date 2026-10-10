@@ -1,0 +1,123 @@
+Metadata-Version: 2.4
+Name: MoCloPlanner
+Version: 0.1.0
+Summary: A Streamlit and command-line planner for Golden Gate / MoClo reactions.
+License: MIT License
+        
+        Copyright (c) 2026 MichaelJLewis98
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas<4.0,>=2.0
+Requires-Dist: openpyxl<4.0,>=3.1
+Requires-Dist: streamlit<2.0,>=1.30
+Dynamic: license-file
+
+# MoCloPlanner
+
+MoCloPlanner is a small Python application for planning Golden Gate / MoClo DNA assembly reactions. It includes a Streamlit interface for selecting parts from an uploaded inventory workbook and a command-line calculator in `moclo_cli.py`. Shared data models, inventory handling, reaction calculations, and assembly rules live in separate modules.
+
+## Features
+
+- Load DNA part inventories from `.xlsx` workbooks or `.csv` files.
+- Select destination vectors and parts for Level 0, Level 1, and Level 2 assemblies.
+- Filter inventory parts by CIDAR overhang order and part type.
+- Calculate DNA masses and reaction volumes from DNA length, concentration, and target fmol.
+- Generate combinations for variant assemblies in the Streamlit interface.
+- Optionally export command-line reaction plans to CSV or Excel.
+
+## Project structure
+
+- `moclo_gui.py` contains the Streamlit interface.
+- `moclo_core.py` contains inventory models, file loading, and reaction calculations shared by both interfaces.
+- `moclo_assembly.py` contains overhang rules and part-selection helpers.
+- `moclo_cli.py` contains the interactive command-line workflow.
+- `test.py` remains as a compatibility entry point; new commands should use `moclo_cli.py`.
+
+## Requirements
+
+- Python 3.10 or newer
+- Dependencies and project metadata listed in [`pyproject.toml`](pyproject.toml)
+
+## Installation
+
+Clone the repository (named `MoCloPlanner`) and create a virtual environment:
+
+```bash
+git clone <repository-url>
+cd MoCloPlanner
+python -m venv .venv
+```
+
+Activate the environment:
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```bash
+python -m pip install -e .
+```
+
+## Run the web app
+
+```bash
+streamlit run moclo_gui.py
+```
+
+In the browser, upload your own inventory as an Excel workbook (`.xlsx`) or CSV file. The workbook should include inventory columns matching the source template, including `Location`, `Code`, `Level`, `Contains (part/construct)`, `Part type`, `Plasmid conc. (ng/uL)`, and `Length (bp)`. Excel workbooks may include multiple sheets; the app detects inventory sheets from their headers.
+
+The app's assembly selection uses level-specific vector/backbone labels and overhang conventions. Check that your inventory uses compatible values before relying on filtered part suggestions.
+
+## Command-line calculator
+
+`moclo_cli.py` offers an interactive terminal workflow. After installation, you can use the `mocloplanner-cli` command as well:
+
+```bash
+python moclo_cli.py path/to/inventory.xlsx
+```
+
+An optional sheet can be specified with `--sheet SHEET_NAME`. Reaction settings and an optional output path are available as command-line options; see:
+
+```bash
+python moclo_cli.py --help
+# or
+mocloplanner-cli --help
+```
+
+## Inventory data and privacy
+
+The workbooks in the development folder are local inventory files and are not included in this project template. Use an inventory file that you are authorized to access and share. Inventory spreadsheets can contain lab-specific or otherwise sensitive information; review them before committing or uploading them anywhere.
+
+## Calculation notes
+
+DNA mass is estimated using 0.65 ng per fmol per kilobase pair (equivalently, 0.00065 ng per fmol per base pair). Reaction volumes are calculated from DNA concentration. Reagent settings and target amounts are configurable in the interface or command-line workflow. Review calculated volumes and your laboratory's validated protocol before preparing reactions.
+
+## License
+
+This project is licensed under the MIT License. See [`LICENSE`](LICENSE). Replace the copyright holder placeholder with the appropriate name or organization before publishing.

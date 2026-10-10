@@ -1,0 +1,6 @@
+Code,Contains,Part type,Role,Level,Length (bp),Conc. (ng/uL),Target (fmol),Required DNA (ng),Volume to add (uL),Location
+pL0_DVK_AE,,Dest. Vector,insert,0.0,3211.0,89.8,20.0,41.743,0.465,C8
+pL0_WH001_AB,BBa_J23100,Promoter (con.),insert,0.0,2143.0,45.2,40.0,55.718,1.233,A1
+pL0_WH015_BC,BCD2,RBS (bicistron.),insert,0.0,2192.0,44.7,40.0,56.992,1.275,A2
+pL0_DVA_CD,APR1,CDS,insert,0.0,2867.0,91.6,40.0,74.542,0.814,G9
+pL0_WH026_DE,BBa_B0015,Terminator,insert,0.0,2237.0,107.3,40.0,58.162,0.542,D8
