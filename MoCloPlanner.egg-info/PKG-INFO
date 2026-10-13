@@ -30,11 +30,13 @@ License-File: LICENSE
 Requires-Dist: pandas<4.0,>=2.0
 Requires-Dist: openpyxl<4.0,>=3.1
 Requires-Dist: streamlit<2.0,>=1.30
+Provides-Extra: test
+Requires-Dist: pytest<9.0,>=8.0; extra == "test"
 Dynamic: license-file
 
 # MoCloPlanner
 
-MoCloPlanner is a small Python application for planning Golden Gate / MoClo DNA assembly reactions. It includes a Streamlit interface for selecting parts from an uploaded inventory workbook and a command-line calculator in `moclo_cli.py`. Shared data models, inventory handling, reaction calculations, and assembly rules live in separate modules.
+MoCloPlanner is a small Python application for planning Golden Gate / MoClo DNA assembly reactions. It is best used as a Streamlit web app for selecting parts from an uploaded inventory workbook. It can also be used as a command-line calculator in `moclo_cli.py`.
 
 ## Features
 
@@ -49,7 +51,8 @@ MoCloPlanner is a small Python application for planning Golden Gate / MoClo DNA 
 
 - `moclo_gui.py` contains the Streamlit interface.
 - `moclo_core.py` contains inventory models, file loading, and reaction calculations shared by both interfaces.
-- `moclo_assembly.py` contains overhang rules and part-selection helpers.
+- `moclo_standards.py` contains CIDAR assembly paths, accepted vector families, and chain validation.
+- `moclo_assembly.py` contains part filtering and labeling helpers.
 - `moclo_cli.py` contains the interactive command-line workflow.
 - `test.py` remains as a compatibility entry point; new commands should use `moclo_cli.py`.
 
@@ -90,9 +93,48 @@ python -m pip install -e .
 streamlit run moclo_gui.py
 ```
 
-In the browser, upload your own inventory as an Excel workbook (`.xlsx`) or CSV file. The workbook should include inventory columns matching the source template, including `Location`, `Code`, `Level`, `Contains (part/construct)`, `Part type`, `Plasmid conc. (ng/uL)`, and `Length (bp)`. Excel workbooks may include multiple sheets; the app detects inventory sheets from their headers.
+In the browser, upload your inventory as an Excel workbook (`.xlsx`). The workbook may contain multiple inventory sheets; the app detects sheets by their header row and lets you choose which ones to load. CSV upload is not currently supported correctly by the Streamlit interface.
 
-The app's assembly selection uses level-specific vector/backbone labels and overhang conventions. Check that your inventory uses compatible values before relying on filtered part suggestions.
+### Inventory workbook structure
+
+Every inventory sheet must have one header row with all of these column names. The spelling, punctuation, and units should match:
+
+| Column | Expected contents |
+| --- | --- |
+| `Location` | Storage location or plate/well identifier. |
+| `Code` | Unique part or plasmid identifier. Required for each data row. |
+| `Level` | Assembly level, normally `L0`, `L1`, or `L2`; numeric `0`, `1`, and `2` are also accepted. |
+| `Plasmid backbone` | Backbone class used for destination vectors (`DVA`, `DVK`, `DVC`, or `DVS`, as appropriate). |
+| `Ori` | Origin of replication, if known. |
+| `Copy nr. (p/cell)` | Copy number, if known. |
+| `Resistance` | Antibiotic resistance marker, if known. |
+| `Contains (part/construct)` | Name or description of the DNA part/construct. |
+| `Part type` | Functional type such as `Vector`, `Promoter`, `RBS`, `CDS`, or `Terminator`. |
+| `5' flank` | 5′ assembly overhang/flank code, such as `A`. |
+| `3' flank` | 3′ assembly overhang/flank code, such as `B`. |
+| `Glyc. stock date` | Glycerol stock date, if applicable. |
+| `Description` | Free-text description, if useful. |
+| `Depositor` | Source/depositor, if known. |
+| `Plasmid conc. (ng/uL)` | DNA concentration as a positive number. Needed for any stock used in a reaction. |
+| `A260/230` | Purity measurement, if available. |
+| `A260/280` | Purity measurement, if available. |
+| `GC Content (%)` | GC content, if available. |
+| `Length (bp)` | DNA length in base pairs as a positive number. Needed for any stock used in a reaction. |
+| `Sequenced` | Sequencing status, if known. |
+| `Benchling file` | Benchling record or file reference, if available. |
+| `Notes` | Optional notes. |
+
+Completely blank rows are ignored. Rows with a part code but a missing, malformed, or nonpositive concentration or length remain visible in the inventory, so they do not prevent use of other stocks. The app reports these rows; selecting one for a reaction will fail with a validation message until the measurements are corrected. Do not estimate missing measurements. Other fields can be blank when unknown, but the column headers must still be present. Keep one physical stock location per row beneath the headers; the app can detect a header row within the first 15 rows of a sheet. A construct code may appear at multiple storage locations. A duplicate record with the same code, location, and inventory sheet is rejected, ignoring letter case.
+
+For backbone selection, put destination vectors on a sheet named `MoClo Dest Vectors`. The app looks for vector rows whose `Part type` contains `VECTOR` or `BACKBONE`, and whose `Plasmid backbone` value is valid for the selected assembly level: `DVA` for L0, `DVK` for L1, and `DVC`, `DVA`, or `DVS` for L2. Enter the vector's explicit path boundaries in `5' flank` and `3' flank`; for example, a vector whose label is `DVK_AE` should have `A` and `E` in those cells. The software does not derive assembly boundaries from the vector name.
+
+For L1 assemblies, the app uses L0 parts. The CIDAR L1 path is the vector's explicit 5′ flank → B → C → D → explicit 3′ flank. For example, an H→I vector uses H→B, B→C, C→D, and D→I parts. For L2, the app uses L1 parts on the path explicit 5′ flank → E → F → G → explicit 3′ flank; an A→H vector uses A→E, E→F, F→G, and G→H parts. The outer flanks vary with the vector, while the internal junctions are fixed. Letter order is not used to infer or reject these paths. Parts need explicit matching `5' flank` and `3' flank` values; part type labels do not override incompatible or missing flank values. The software validates the full chain before calculating a reaction. L0 inserts are entered manually in the app and must include their length, positive concentration, and flanks; their explicit junctions must connect from the vector's 5′ to 3′ boundary.
+
+The codebase is fairly small, so it relatively easy to change these to fit your DNA inventory and/or your overhang naming style.
+
+## Standards and reaction protocols
+
+Assembly syntax lives in `moclo_standards.py`. CIDAR is the only registered standard in this release; vector family allowances, source part levels, and level-specific flank paths are defined there, and the app/CLI select from the registry. Reaction composition is configured separately. Set the total reaction volume, buffer volume, ligase volume, restriction enzyme name and volume, backbone target amount, and insert ratio to match the protocol you intend to use. The GUI starts at 10 µL total and the CLI at 7.5 µL; both start with 1 µL buffer, 0.5 µL ligase, 0.5 µL restriction enzyme, 20 fmol backbone, and a 2:1 insert ratio. These editable values are examples only, not a universal or required Golden Gate recipe. Different kits and laboratory protocols can specify different compositions.
 
 ## Command-line calculator
 
@@ -114,9 +156,20 @@ mocloplanner-cli --help
 
 The workbooks in the development folder are local inventory files and are not included in this project template. Use an inventory file that you are authorized to access and share. Inventory spreadsheets can contain lab-specific or otherwise sensitive information; review them before committing or uploading them anywhere.
 
-## Calculation notes
+## Units, assumptions, and limitations
 
-DNA mass is estimated using 0.65 ng per fmol per kilobase pair (equivalently, 0.00065 ng per fmol per base pair). Reaction volumes are calculated from DNA concentration. Reagent settings and target amounts are configurable in the interface or command-line workflow. Review calculated volumes and your laboratory's validated protocol before preparing reactions.
+The mass estimate assumes double-stranded DNA has an average molecular weight of 650 g/mol per base pair. It uses `DNA mass (ng) = target amount (fmol) × length (bp) × 0.00065`. DNA volume is `DNA mass (ng) / concentration (ng/µL)`, yielding a volume in µL. `fmol` is the amount of DNA molecules; the insert ratio is the target molar amount of each insert relative to the backbone. The water volume is the configured total reaction volume minus DNA and fixed reagent volumes. A plan is rejected if the DNA and fixed reagents exceed the total volume or if required concentration/length values are missing or invalid.
+
+MoCloPlanner assists reaction planning; calculated values are not experimentally guaranteed. Check inventory values, flank assignments, enzyme and buffer compatibility, pipetting limits, and your laboratory's validated protocol before preparing a reaction. The calculator does not determine whether a construct will assemble successfully.
+
+## Tests
+
+Install the optional test dependency and run the validation suite:
+
+```bash
+python -m pip install -e ".[test]"
+python -m pytest
+```
 
 ## License
 

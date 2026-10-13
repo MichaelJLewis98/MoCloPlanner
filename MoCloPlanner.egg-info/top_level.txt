@@ -2,3 +2,4 @@ moclo_assembly
 moclo_cli
 moclo_core
 moclo_gui
+moclo_standards

@@ -4,6 +4,7 @@ moclo_assembly.py
 moclo_cli.py
 moclo_core.py
 moclo_gui.py
+moclo_standards.py
 pyproject.toml
 MoCloPlanner.egg-info/PKG-INFO
 MoCloPlanner.egg-info/SOURCES.txt
@@ -11,3 +12,5 @@ MoCloPlanner.egg-info/dependency_links.txt
 MoCloPlanner.egg-info/entry_points.txt
 MoCloPlanner.egg-info/requires.txt
 MoCloPlanner.egg-info/top_level.txt
+tests/test_moclo_core.py
+tests/test_moclo_standards.py
